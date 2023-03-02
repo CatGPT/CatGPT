@@ -1,0 +1,160 @@
+:root {
+    --main-hue: 222;
+	--main-saturation: 4%;
+	--value-base: 13%;
+	--value-step: 5%;
+	--background-color1: hsl(var(--main-hue), var(--main-saturation), var(--value-base));
+	--background-color2: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) + (1 * var(--value-step))));
+	--background-color3: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (0.5 * var(--value-step))));
+	--background-color4: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (1.5 * var(--value-step))));
+
+    --accent-hue: 267;
+    --accent-lightness: 36%;
+    --accent-lightness-hover: 40%;
+
+    --text-color: #eee;
+
+	--input-text-color: #eee;
+    --input-background-color: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (0.7 * var(--value-step))));
+	--input-border-color: var(--background-color4);
+
+    --button-text-color: var(--input-text-color);
+    --button-color: var(--input-background-color);
+    --button-border: none;
+
+    /* other */
+    --input-border-radius: 4px;
+    --input-border-size: 1px; 
+    --accent-color: hsl(var(--accent-hue), 100%, var(--accent-lightness));
+    --accent-color-hover: hsl(var(--accent-hue), 100%, var(--accent-lightness-hover));
+    --primary-button-border: none;
+    --input-switch-padding: 1px;
+    --input-height: 18px;
+
+    /* Main theme color, hex color fallback. */
+    --theme-color-fallback: #673AB6;
+}
+
+.theme-light {
+    --background-color1: white; 
+    --background-color2: #ececec;
+    --background-color3: #e7e9eb;
+    --background-color4: #cccccc;
+
+    --text-color: black;
+
+    --input-text-color: black;
+    --input-background-color: #f8f9fa; 
+    --input-border-color: grey; 
+
+    --theme-color-fallback: #aaaaaa;
+}
+
+.theme-discord {
+    --background-color1: #36393f;
+    --background-color2: #2f3136;
+    --background-color3: #292b2f;
+    --background-color4: #202225;
+    
+    --accent-hue: 235;
+    --accent-lightness: 65%;
+
+    --input-border-size: 2px; 
+    --input-background-color: #202225; 
+    --input-border-color: var(--input-background-color); 
+
+    --theme-color-fallback: #202225;
+}
+
+.theme-cool-blue {
+    --main-hue: 222;
+	--main-saturation: 18%;
+	--value-base: 18%;
+	--value-step: 3%;
+	--background-color1: hsl(var(--main-hue), var(--main-saturation), var(--value-base));
+	--background-color2: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (1 * var(--value-step))));
+	--background-color3: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (2 * var(--value-step))));
+	--background-color4: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (3 * var(--value-step))));
+
+    --input-background-color: var(--background-color3);
+
+    --accent-hue: 212;
+
+    --theme-color-fallback: #0056b8;
+}
+
+
+.theme-blurple {
+    --main-hue: 235;
+	--main-saturation: 18%;
+	--value-base: 16%;
+	--value-step: 3%;
+	--background-color1: hsl(var(--main-hue), var(--main-saturation), var(--value-base));
+	--background-color2: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (1 * var(--value-step))));
+	--background-color3: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (2 * var(--value-step))));
+	--background-color4: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (3 * var(--value-step))));
+
+    --input-background-color: var(--background-color3);
+
+    --theme-color-fallback: #5300b8;
+}
+
+.theme-super-dark {
+    --main-hue: 222;
+	--main-saturation: 18%;
+	--value-base: 5%;
+	--value-step: 5%;
+	--background-color1: hsl(var(--main-hue), var(--main-saturation), var(--value-base));
+	--background-color2: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) + (1 * var(--value-step))));
+	--background-color3: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) + (2 * var(--value-step))));
+	--background-color4: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) + (1.4 * var(--value-step))));
+
+    --input-background-color: var(--background-color3);
+    --input-border-size: 0px;
+
+    --theme-color-fallback: #000000;
+}
+
+.theme-wild {
+    --main-hue: 128;
+	--main-saturation: 18%;
+	--value-base: 20%;
+	--value-step: 5%;
+	--background-color1: hsl(var(--main-hue), var(--main-saturation), var(--value-base));
+	--background-color2: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (1 * var(--value-step))));
+	--background-color3: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (2 * var(--value-step))));
+	--background-color4: hsl(var(--main-hue), var(--main-saturation), calc(var(--value-base) - (3 * var(--value-step))));
+    
+    --accent-hue: 212;
+    
+    --input-border-size: 1px; 
+    --input-background-color: hsl(222, var(--main-saturation), calc(var(--value-base) - (2 * var(--value-step))));
+    --input-text-color: #FF0000;
+    --input-border-color: #005E05;
+}
+
+
+.theme-gnomie {
+    --background-color1: #242424;
+    --background-color2: #353535;
+    --background-color3: #494949;
+    --background-color4: #000000;
+    
+    --accent-hue: 213;
+    --accent-lightness: 55%;
+    --accent-color: #2168bf;
+
+    --input-border-radius: 6px;
+    --input-text-color: #ffffff;
+    --input-background-color: #2a2a2a; 
+    --input-border-size: 0px; 
+    --input-border-color: var(--input-background-color); 
+
+    --theme-color-fallback: #2168bf;
+}
+
+.theme-gnomie .panel-box {
+    border: none;
+    box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+}
