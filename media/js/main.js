@@ -33,18 +33,23 @@ let promptStrengthField = document.querySelector('#prompt_strength')
 let samplerField = document.querySelector('#sampler_name')
 let samplerSelectionContainer = document.querySelector("#samplerSelection")
 let useFaceCorrectionField = document.querySelector("#use_face_correction")
+let gfpganModelField = new ModelDropdown(document.querySelector("#gfpgan_model"), 'gfpgan')
 let useUpscalingField = document.querySelector("#use_upscale")
 let upscaleModelField = document.querySelector("#upscale_model")
 let upscaleAmountField = document.querySelector("#upscale_amount")
-let stableDiffusionModelField = document.querySelector('#stable_diffusion_model')
-let vaeModelField = document.querySelector('#vae_model')
-let hypernetworkModelField = document.querySelector('#hypernetwork_model')
+let stableDiffusionModelField = new ModelDropdown(document.querySelector('#stable_diffusion_model'), 'stable-diffusion')
+let vaeModelField = new ModelDropdown(document.querySelector('#vae_model'), 'vae', 'None')
+let hypernetworkModelField = new ModelDropdown(document.querySelector('#hypernetwork_model'), 'hypernetwork', 'None')
 let hypernetworkStrengthSlider = document.querySelector('#hypernetwork_strength_slider')
 let hypernetworkStrengthField = document.querySelector('#hypernetwork_strength')
 let outputFormatField = document.querySelector('#output_format')
+let blockNSFWField = document.querySelector('#block_nsfw')
 let showOnlyFilteredImageField = document.querySelector("#show_only_filtered_image")
 let updateBranchLabel = document.querySelector("#updateBranchLabel")
 let streamImageProgressField = document.querySelector("#stream_image_progress")
+let thumbnailSizeField = document.querySelector("#thumbnail_size-input")
+let autoscrollBtn = document.querySelector("#auto_scroll_btn")
+let autoScroll = document.querySelector("#auto_scroll")
 
 let makeImageBtn = document.querySelector('#makeImage')
 let stopImageBtn = document.querySelector('#stopImage')
@@ -60,12 +65,14 @@ let promptStrengthContainer = document.querySelector('#prompt_strength_container
 let initialText = document.querySelector("#initial-text")
 let previewTools = document.querySelector("#preview-tools")
 let clearAllPreviewsBtn = document.querySelector("#clear-all-previews")
+let saveAllImagesBtn = document.querySelector("#save-all-images")
 
 let maskSetting = document.querySelector('#enable_mask')
 
 const processOrder = document.querySelector('#process_order_toggle')
 
 let imagePreview = document.querySelector("#preview")
+let imagePreviewContent = document.querySelector("#preview-content")
 imagePreview.addEventListener('drop', function(ev) {
     const data = ev.dataTransfer?.getData("text/plain");
     if (!data) {
@@ -77,7 +84,7 @@ imagePreview.addEventListener('drop', function(ev) {
     }
     ev.preventDefault()
     let moveTarget = ev.target
-    while (moveTarget && typeof moveTarget === 'object' && moveTarget.parentNode !== imagePreview) {
+    while (moveTarget && typeof moveTarget === 'object' && moveTarget.parentNode !== imagePreviewContent) {
         moveTarget = moveTarget.parentNode
     }
     if (moveTarget === initialText || moveTarget === previewTools) {
@@ -87,17 +94,17 @@ imagePreview.addEventListener('drop', function(ev) {
         return
     }
     if (moveTarget) {
-        const childs = Array.from(imagePreview.children)
+        const childs = Array.from(imagePreviewContent.children)
         if (moveTarget.nextSibling && childs.indexOf(movedTask) < childs.indexOf(moveTarget)) {
             // Move after the target if lower than current position.
             moveTarget = moveTarget.nextSibling
         }
     }
-    const newNode = imagePreview.insertBefore(movedTask, moveTarget || previewTools.nextSibling)
+    const newNode = imagePreviewContent.insertBefore(movedTask, moveTarget || previewTools.nextSibling)
     if (newNode === movedTask) {
         return
     }
-    imagePreview.removeChild(movedTask)
+    imagePreviewContent.removeChild(movedTask)
     const task = htmlTaskMap.get(movedTask)
     if (task) {
         htmlTaskMap.delete(movedTask)
@@ -264,9 +271,26 @@ function showImages(reqBody, res, outputContainer, livePreview) {
                         <span class="imgSeedLabel"></span>
                     </div>
                     <button class="imgPreviewItemClearBtn image_clear_btn"><i class="fa-solid fa-xmark"></i></button>
+                    <span class="img_bottom_label"></span>
                 </div>
             `
             outputContainer.appendChild(imageItemElem)
+            const imageRemoveBtn = imageItemElem.querySelector('.imgPreviewItemClearBtn')
+            let parentTaskContainer = imageRemoveBtn.closest('.imageTaskContainer')
+            imageRemoveBtn.addEventListener('click', (e) => {
+                shiftOrConfirm(e, "Remove the image from the results?", () => { 
+                    imageItemElem.style.display = 'none' 
+                    let allHidden = true;
+                    let children = parentTaskContainer.querySelectorAll('.imgItem');
+                    for(let x = 0; x < children.length; x++) {
+                        let child = children[x];
+                        if(child.style.display != "none") {
+                            allHidden = false;
+                        }
+                    }
+                    if(allHidden === true) {parentTaskContainer.classList.add("displayNone")}
+                })
+            })
         }
         const imageElem = imageItemElem.querySelector('img')
         imageElem.src = imageData
@@ -276,11 +300,10 @@ function showImages(reqBody, res, outputContainer, livePreview) {
         imageElem.setAttribute('data-steps', imageInferenceSteps)
         imageElem.setAttribute('data-guidance', imageGuidanceScale)
 
-        const imageRemoveBtn = imageItemElem.querySelector('.imgPreviewItemClearBtn')
-        imageRemoveBtn.addEventListener('click', (e) => {
-            console.log(e)
-            shiftOrConfirm(e, "Remove the image from the results?", () => { imageItemElem.style.display = 'none' })
+        imageElem.addEventListener('load', function() {
+            imageItemElem.querySelector('.img_bottom_label').innerText = `${this.naturalWidth} x ${this.naturalHeight}`
         })
+
 
         const imageInfo = imageItemElem.querySelector('.imgItemInfo')
         imageInfo.style.visibility = (livePreview ? 'hidden' : 'visible')
@@ -291,15 +314,15 @@ function showImages(reqBody, res, outputContainer, livePreview) {
             })
             imageElem.setAttribute('data-seed', req.seed)
             const imageSeedLabel = imageItemElem.querySelector('.imgSeedLabel')
-            imageSeedLabel.innerText = 'Seed: ' + req.seed
+            // imageSeedLabel.innerText = 'Seed: ' + req.seed
 
             let buttons = [
-                { text: 'Use as Input', on_click: onUseAsInputClick },
+                // { text: 'Use as Input', on_click: onUseAsInputClick },
                 { text: 'Download', on_click: onDownloadImageClick },
-                { text: 'Make Similar Images', on_click: onMakeSimilarClick },
-                { text: 'Draw another 25 steps', on_click: onContinueDrawingClick },
-                { text: 'Upscale', on_click: onUpscaleClick, filter: (req, img) => !req.use_upscale },
-                { text: 'Fix Faces', on_click: onFixFacesClick, filter: (req, img) => !req.use_face_correction }
+                // { text: 'Make Similar Images', on_click: onMakeSimilarClick },
+                // { text: 'Draw another 25 steps', on_click: onContinueDrawingClick },
+                // { text: 'Upscale', on_click: onUpscaleClick, filter: (req, img) => !req.use_upscale },
+                // { text: 'Fix Faces', on_click: onFixFacesClick, filter: (req, img) => !req.use_face_correction }
             ]
 
             // include the plugins
@@ -413,7 +436,7 @@ function onUpscaleClick(req, img) {
 
 function onFixFacesClick(req, img) {
     enqueueImageVariationTask(req, img, {
-        use_face_correction: 'GFPGANv1.3'
+        use_face_correction: gfpganModelField.value
     })
 }
 
@@ -568,7 +591,8 @@ function getTaskUpdater(task, reqBody, outputContainer) {
             const timeTaken = stepUpdate.step_time // sec
             const stepsRemaining = Math.max(0, totalSteps - overallStepCount)
             const timeRemaining = (timeTaken < 0 ? '' : millisecondsToStr(stepsRemaining * timeTaken * 1000))
-            outputMsg.innerHTML = `Batch ${task.batchesDone} of ${batchCount}. Generating image(s): ${percent}%. Time remaining (approx): ${timeRemaining}`
+            // outputMsg.innerHTML = `Batch ${task.batchesDone} of ${batchCount}. Generating image(s): ${percent}%. Time remaining (approx): ${timeRemaining}`
+            outputMsg.innerHTML = ` `
             outputMsg.style.display = 'block'
             progressBarInner.style.width = `${percent}%`
 
@@ -652,7 +676,7 @@ function onTaskCompleted(task, reqBody, instance, outputContainer, stepUpdate) {
 
     if (task.batchesDone == task.batchCount) {
         if (!task.outputMsg.innerText.toLowerCase().includes('error')) {
-            task.outputMsg.innerText = `Processed ${task.numOutputsTotal} images in ${time}`
+            // task.outputMsg.innerText = `Processed ${task.numOutputsTotal} images in ${time}`
         }
         task.progressBar.style.height = "0px"
         task.progressBar.style.border = "0px solid var(--background-color3)"
@@ -706,12 +730,18 @@ async function onTaskStart(task) {
     if (task.batchCount > 1) {
         // Each output render batch needs it's own task reqBody instance to avoid altering the other runs after they are completed.
         newTaskReqBody = Object.assign({}, task.reqBody)
+        if (task.batchesDone == task.batchCount-1) { 
+            // Last batch of the task
+            // If the number of parallel jobs is no factor of the total number of images, the last batch must create less than "parallel jobs count" images
+            // E.g. with numOutputsTotal = 6 and num_outputs = 5, the last batch shall only generate 1 image.
+            newTaskReqBody.num_outputs = task.numOutputsTotal - task.reqBody.num_outputs * (task.batchCount-1)
+        }
     }
 
     const startSeed = task.seed || newTaskReqBody.seed
     const genSeeds = Boolean(typeof newTaskReqBody.seed !== 'number' || (newTaskReqBody.seed === task.seed && task.numOutputsTotal > 1))
     if (genSeeds) {
-        newTaskReqBody.seed = parseInt(startSeed) + (task.batchesDone * newTaskReqBody.num_outputs)
+        newTaskReqBody.seed = parseInt(startSeed) + (task.batchesDone * task.reqBody.num_outputs)
     }
 
     // Update the seed *before* starting the processing so it's retained if user stops the task
@@ -764,7 +794,7 @@ async function onTaskStart(task) {
     setStatus('request', 'fetching..')
     renderButtons.style.display = 'flex'
     renameMakeImageButton()
-    previewTools.style.display = 'block'
+    previewTools.style.display = 'none'
 }
 
 /* Hover effect for the init image in the task list */
@@ -774,7 +804,10 @@ function createInitImageHover(taskEntry) {
     img.src = taskEntry.querySelector('div.task-initimg > img').src
     $tooltip.append(img)
     $tooltip.append(`<div class="top-right"><button>Use as Input</button></div>`)
-    $tooltip.find('button').on('click', (e) => { onUseAsInputClick(null,img) } )
+    $tooltip.find('button').on('click', (e) => {
+        e.stopPropagation()
+        onUseAsInputClick(null,img) 
+    })
 }
 
 let startX, startY;
@@ -807,7 +840,7 @@ function createTask(task) {
         let w = task.reqBody.width * h / task.reqBody.height >>0
         taskConfig += `<div class="task-initimg" style="float:left;"><img style="width:${w}px;height:${h}px;" src="${task.reqBody.init_image}"><div class="task-fs-initimage"></div></div>`
     }
-    taskConfig += `<b>Seed:</b> ${task.seed}, <b>Sampler:</b> ${task.reqBody.sampler_name}, <b>Inference Steps:</b> ${task.reqBody.num_inference_steps}, <b>Guidance Scale:</b> ${task.reqBody.guidance_scale}, <b>Model:</b> ${task.reqBody.use_stable_diffusion_model}`
+    // taskConfig += `<b>Seed:</b> ${task.seed}, <b>Sampler:</b> ${task.reqBody.sampler_name}, <b>Inference Steps:</b> ${task.reqBody.num_inference_steps}, <b>Guidance Scale:</b> ${task.reqBody.guidance_scale}, <b>Model:</b> ${task.reqBody.use_stable_diffusion_model}`
 
     if (task.reqBody.use_vae_model.trim() !== '') {
         taskConfig += `, <b>VAE:</b> ${task.reqBody.use_vae_model}`
@@ -836,10 +869,10 @@ function createTask(task) {
     taskEntry.id = `imageTaskContainer-${Date.now()}`
     taskEntry.className = 'imageTaskContainer'
     taskEntry.innerHTML = ` <div class="header-content panel collapsible active">
-                                <i class="drag-handle fa-solid fa-grip"></i>
+                                <i class="drag-handle fa-solid fa-grip" style="display: none;"></i>
                                 <div class="taskStatusLabel">Enqueued</div>
-                                <button class="secondaryButton stopTask"><i class="fa-solid fa-trash-can"></i> Remove</button>
-                                <button class="secondaryButton useSettings"><i class="fa-solid fa-redo"></i> Use these settings</button>
+                                <button class="secondaryButton stopTask" style="display: none;"><i class="fa-solid fa-trash-can"></i> Remove</button>
+                                <button class="tertiaryButton useSettings" style="display: none;"><i class="fa-solid fa-redo"></i> Use these settings</button>
                                 <div class="preview-prompt"></div>
                                 <div class="taskConfig">${taskConfig}</div>
                                 <div class="outputMsg"></div>
@@ -906,7 +939,7 @@ function createTask(task) {
     })
 
     task.isProcessing = true
-    taskEntry = imagePreview.insertBefore(taskEntry, previewTools.nextSibling)
+    taskEntry = imagePreviewContent.insertBefore(taskEntry, previewTools.nextSibling)
     htmlTaskMap.set(taskEntry, task)
 
     task.previewPrompt.innerText = task.reqBody.prompt
@@ -929,6 +962,7 @@ function getCurrentUserRequest() {
 
         reqBody: {
             seed,
+            used_random_seed: randomSeedField.checked,
             negative_prompt: negativePromptField.value.trim(),
             num_outputs: numOutputsParallel,
             num_inference_steps: parseInt(numInferenceStepsField.value),
@@ -943,9 +977,10 @@ function getCurrentUserRequest() {
             stream_progress_updates: true,
             stream_image_progress: (numOutputsTotal > 50 ? false : streamImageProgressField.checked),
             show_only_filtered_image: showOnlyFilteredImageField.checked,
+            block_nsfw: blockNSFWField.checked,
             output_format: outputFormatField.value,
             output_quality: parseInt(outputQualityField.value),
-            metadata_output_format: document.querySelector('#metadata_output_format').value,
+            metadata_output_format: metadataOutputFormatField.value,
             original_prompt: promptField.value,
             active_tags: (activeTags.map(x => x.name)),
             inactive_tags: (activeTags.filter(tag => tag.inactive === true).map(x => x.name))
@@ -970,7 +1005,7 @@ function getCurrentUserRequest() {
         newTask.reqBody.save_to_disk_path = diskPathField.value.trim()
     }
     if (useFaceCorrectionField.checked) {
-        newTask.reqBody.use_face_correction = 'GFPGANv1.3'
+        newTask.reqBody.use_face_correction = gfpganModelField.value
     }
     if (useUpscalingField.checked) {
         newTask.reqBody.use_upscale = upscaleModelField.value
@@ -1014,6 +1049,8 @@ function getPrompts(prompts) {
 
     promptsToMake = applyPermuteOperator(promptsToMake)
     promptsToMake = applySetOperator(promptsToMake)
+
+    PLUGINS['GET_PROMPTS_HOOK'].forEach(fn => { promptsToMake = fn(promptsToMake) })
 
     return promptsToMake
 }
@@ -1099,7 +1136,7 @@ function createFileName(prompt, seed, steps, guidance, outputFormat) {
     // fileName += `${tagString}`
 
     // add the file extension
-    fileName += '.' + (outputFormat === 'png' ? 'png' : 'jpeg')
+    fileName += '.' + outputFormat
 
     return fileName
 }
@@ -1134,6 +1171,20 @@ clearAllPreviewsBtn.addEventListener('click', (e) => { shiftOrConfirm(e, "Clear 
     taskEntries.forEach(removeTask)
 })})
 
+saveAllImagesBtn.addEventListener('click', (e) => {
+    let i = 0
+    document.querySelectorAll(".imageTaskContainer").forEach(container => {
+        let req = htmlTaskMap.get(container)
+        container.querySelectorAll(".imgContainer img").forEach(img => {
+            if (img.closest('.imgItem').style.display === 'none') {
+                return
+            }
+            setTimeout(() => {onDownloadImageClick(req, img)}, i*200)
+            i = i+1
+        })
+    })
+})
+
 stopImageBtn.addEventListener('click', (e) => { shiftOrConfirm(e, "Stop all the tasks?", async function(e) {
     await stopAllTasks()
 })})
@@ -1142,7 +1193,7 @@ widthField.addEventListener('change', onDimensionChange)
 heightField.addEventListener('change', onDimensionChange)
 
 function renameMakeImageButton() {
-    let totalImages = Math.max(parseInt(numOutputsTotalField.value), parseInt(numOutputsParallelField.value))
+    let totalImages = Math.max(parseInt(numOutputsTotalField.value), parseInt(numOutputsParallelField.value)) * getPrompts().length
     let imageLabel = 'Image'
     if (totalImages > 1) {
         imageLabel = totalImages + ' Images'
@@ -1168,6 +1219,12 @@ function onDimensionChange() {
 }
 
 diskPathField.disabled = !saveToDiskField.checked
+metadataOutputFormatField.disabled = !saveToDiskField.checked
+
+gfpganModelField.disabled = !useFaceCorrectionField.checked
+useFaceCorrectionField.addEventListener('change', function(e) {
+    gfpganModelField.disabled = !this.checked
+})
 
 upscaleModelField.disabled = !useUpscalingField.checked
 upscaleAmountField.disabled = !useUpscalingField.checked
@@ -1254,7 +1311,7 @@ function updateHypernetworkStrengthContainer() {
 hypernetworkModelField.addEventListener('change', updateHypernetworkStrengthContainer)
 updateHypernetworkStrengthContainer()
 
-/********************* JPEG Quality **********************/
+/********************* JPEG/WEBP Quality **********************/
 function updateOutputQuality() {
     outputQualityField.value =  0 | outputQualitySlider.value
     outputQualityField.dispatchEvent(new Event("change"))
@@ -1276,77 +1333,43 @@ outputQualityField.addEventListener('input', debounce(updateOutputQualitySlider,
 updateOutputQuality()
 
 outputFormatField.addEventListener('change', e => {
-    if (outputFormatField.value == 'jpeg') {
-        outputQualityRow.style.display='table-row'
-    } else {
+    if (outputFormatField.value === 'png') {
         outputQualityRow.style.display='none'
+    } else {
+        outputQualityRow.style.display='table-row'
     }
 })
-
-async function getModels() {
-    try {
-        const sd_model_setting_key = "stable_diffusion_model"
-        const vae_model_setting_key = "vae_model"
-        const hypernetwork_model_key = "hypernetwork_model"
-        const selectedSDModel = SETTINGS[sd_model_setting_key].value
-        const selectedVaeModel = SETTINGS[vae_model_setting_key].value
-        const selectedHypernetworkModel = SETTINGS[hypernetwork_model_key].value
-
-        const models = await SD.getModels()
-        const modelsOptions = models['options']
-        if ("scan-error" in models) {
-            // let previewPane = document.getElementById('tab-content-wrapper')
-            let previewPane = document.getElementById('preview')
-            previewPane.style.background="red"
-            previewPane.style.textAlign="center"
-            previewPane.innerHTML = '<H1>🔥Malware alert!🔥</H1><h2>The file <i>' + models['scan-error'] + '</i> in your <tt>models/stable-diffusion</tt> folder is probably malware infected.</h2><h2>Please delete this file from the folder before proceeding!</h2>After deleting the file, reload this page.<br><br><button onClick="window.location.reload();">Reload Page</button>'
-            makeImageBtn.disabled = true
-        }
-
-        const stableDiffusionOptions = modelsOptions['stable-diffusion']
-        const vaeOptions = modelsOptions['vae']
-        const hypernetworkOptions = modelsOptions['hypernetwork']
-
-        vaeOptions.unshift('') // add a None option
-        hypernetworkOptions.unshift('') // add a None option
-
-        function createModelOptions(modelField, selectedModel, path="") {
-            return function fn(modelName) {
-                if (typeof(modelName) == 'string') {
-                    const modelOption = document.createElement('option')
-                    modelOption.value =  path + modelName
-                    modelOption.innerHTML = modelName !== '' ? (path != "" ? "&nbsp;&nbsp;"+modelName : modelName) : 'None'
-
-                    if (path + modelName === selectedModel) {
-                        modelOption.selected = true
-                    }
-                    modelField.appendChild(modelOption)
-                } else {
-                    const modelGroup = document.createElement('optgroup')
-                    modelGroup.label = path + modelName[0]
-                    modelField.appendChild(modelGroup)
-                    modelName[1].forEach( createModelOptions(modelField, selectedModel, path + modelName[0] + "/" ) )
+/********************* Zoom Slider **********************/
+thumbnailSizeField.addEventListener('change', () => {
+    (function (s) {
+        for (var j =0; j < document.styleSheets.length; j++) {
+            let cssSheet = document.styleSheets[j]
+            for (var i = 0; i < cssSheet.cssRules.length; i++) {
+                var rule = cssSheet.cssRules[i];
+                if (rule.selectorText == "div.img-preview img") {
+                  rule.style['max-height'] = s+'vh';
+                  rule.style['max-width'] = s+'vw';
+                  return;
                 }
             }
         }
+    })(thumbnailSizeField.value)
+})
 
-        stableDiffusionOptions.forEach(createModelOptions(stableDiffusionModelField, selectedSDModel))
-        vaeOptions.forEach(createModelOptions(vaeModelField, selectedVaeModel))
-        hypernetworkOptions.forEach(createModelOptions(hypernetworkModelField, selectedHypernetworkModel))
-
-        stableDiffusionModelField.dispatchEvent(new Event('change'))
-        vaeModelField.dispatchEvent(new Event('change'))
-        hypernetworkModelField.dispatchEvent(new Event('change'))
-
-        // TODO: set default for model here too
-        SETTINGS[sd_model_setting_key].default = stableDiffusionOptions[0]
-        if (getSetting(sd_model_setting_key) == '' || SETTINGS[sd_model_setting_key].value == '') {
-            setSetting(sd_model_setting_key, stableDiffusionOptions[0])
-        }
-    } catch (e) {
-        console.log('get models error', e)
+function onAutoScrollUpdate() {
+    if (autoScroll.checked) {
+        autoscrollBtn.classList.add('pressed')
+    } else {
+        autoscrollBtn.classList.remove('pressed')
     }
+    autoscrollBtn.querySelector(".state").innerHTML = (autoScroll.checked ? "ON" : "OFF")
 }
+autoscrollBtn.addEventListener('click', function() {
+    autoScroll.checked = !autoScroll.checked
+    autoScroll.dispatchEvent(new Event("change"))
+    onAutoScrollUpdate()
+})
+autoScroll.addEventListener('change', onAutoScrollUpdate)
 
 function checkRandomSeed() {
     if (randomSeedField.checked) {
@@ -1490,6 +1513,9 @@ function resumeClient() {
     })
 }
 
+promptField.addEventListener("input", debounce( renameMakeImageButton, 1000) )
+
+
 pauseBtn.addEventListener("click", function () {
     pauseClient = true
     pauseBtn.style.display="none"
@@ -1522,3 +1548,7 @@ window.addEventListener("beforeunload", function(e) {
 
 createCollapsibles()
 prettifyInputs(document);
+
+// set the textbox as focused on start
+promptField.focus()
+promptField.selectionStart = promptField.value.length
