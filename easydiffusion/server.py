@@ -7,7 +7,7 @@ import traceback
 import datetime
 from typing import List, Union
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -16,10 +16,27 @@ from easydiffusion import app, model_manager, task_manager
 from easydiffusion.types import TaskData, GenerateImageRequest, MergeRequest
 from easydiffusion.utils import log
 
+from customapi.database import engine
+from fastapi.responses import JSONResponse as FastJSONResponse
+from fastapi_jwt_auth import AuthJWT
+from fastapi_jwt_auth.exceptions import AuthJWTException
+from customapi.models import Base
+from customapi.schemas import Settings
+from customapi.views import router
+
 log.info(f"started in {app.SD_DIR}")
 log.info(f"started at {datetime.datetime.now():%x %X}")
 
 server_api = FastAPI()
+server_api.include_router(router)
+
+@AuthJWT.load_config
+def get_config():
+    return Settings()
+
+@server_api.exception_handler(AuthJWTException)
+def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+    return FastJSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 NOCACHE_HEADERS = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
 

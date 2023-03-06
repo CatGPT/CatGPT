@@ -64,8 +64,8 @@
                     </div>
                 </div>
 
-                <div id="editor-inputs-init-image" class="row"  style="display: none;">
-                    <label for="init_image">Initial Image (img2img) <small>(optional)</small> </label>
+                <div id="editor-inputs-init-image" class="row" >
+                    <label for="init_image">Img2imag: </label>
 
                     <div id="init_image_preview_container" class="image_preview_container">
                         <div id="init_image_wrapper">
@@ -73,17 +73,17 @@
                             <span id="init_image_size_box" class="img_bottom_label"></span>
                             <button class="init_image_clear image_clear_btn"><i class="fa-solid fa-xmark"></i></button>
                         </div>
-                        <div id="init_image_buttons">
+                        <div id="init_image_buttons" >
                             <div class="button">
-                                <i class="fa-regular fa-folder-open"></i>
+                                <!-- <i class="fa-regular fa-folder-open"></i> -->
                                 Browse
                                 <input id="init_image" name="init_image" type="file" />
                             </div>
-                            <div id="init_image_button_draw" class="button">
+                            <div id="init_image_button_draw" class="button" style="display: none;">
                                 <i class="fa-solid fa-pencil"></i>
                                 Draw
                             </div>
-                            <div id="inpaint_button_container">
+                            <div id="inpaint_button_container" style="display: none;">
                                 <div id="init_image_button_inpaint" class="button">
                                     <i class="fa-solid fa-paintbrush"></i>
                                     Inpaint
@@ -110,9 +110,9 @@
 		</div>
             </div>
 
-            <!-- <span class="line-separator"></span> -->
+            <span class="line-separator"></span>
 
-            <div id="editor-settings" class="settings-box panel-box" style="display: none;">
+            <div id="editor-settings" class="settings-box panel-box" style="display: block;">
                 <h4 class="collapsible">
                     Image Settings
                     <i id="reset-image-settings" class="fa-solid fa-arrow-rotate-left section-button">
