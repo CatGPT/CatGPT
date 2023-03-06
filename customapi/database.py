@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 from sqlalchemy.util.compat import contextmanager
 
-DATABASE_URL = "postgresql://postgres:catgptdb@postgres.catgpt.fun:5432/postgres"
+DATABASE_URL = ""
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
