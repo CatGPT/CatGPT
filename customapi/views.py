@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_jwt_auth import AuthJWT
 from customapi.schemas import Login, Refresh, Register, Token, User, Image, SaveImage, Follow, SaveFollow
-from customapi.services import add_user, get_user, get_images, add_image, get_follows, add_follow
+from customapi.services import add_user, get_user, get_images, add_image, get_follows, add_follow, remove_follow, get_follows_by_image_id
 from customapi.utils import verify_password
 
 router = APIRouter()
@@ -80,7 +80,7 @@ def getImages(authorize: AuthJWT = Depends()):
     return {"images": images}
 
 
-@router.post("/saveFollow", response_model=Follow)
+@router.post("/follow", response_model=Follow)
 def saveImage(image: SaveFollow, authorize: AuthJWT = Depends()):
     authorize.jwt_required()
 
@@ -94,6 +94,23 @@ def saveImage(image: SaveFollow, authorize: AuthJWT = Depends()):
     return Follow(**follow.__dict__)
 
 
+@router.post("/unfollow")
+def saveImage(image: SaveFollow, authorize: AuthJWT = Depends()):
+    authorize.jwt_required()
+
+    current_user = authorize.get_jwt_subject()
+    user = get_user(current_user)
+
+    un_follow = SaveFollow(
+        imageID=image.imageID
+    )
+    follow = remove_follow(un_follow, user)
+    if follow == None:
+        return {"message": "No image to unfollow at this time!"}
+    else:
+        return {"message": "Successfully unfollowed image!", "follow": Follow(**follow.__dict__)}
+
+
 @router.get("/getFollows")
 def getFollows(authorize: AuthJWT = Depends()):
     authorize.jwt_required()
@@ -103,3 +120,15 @@ def getFollows(authorize: AuthJWT = Depends()):
     follows = get_follows(user)
 
     return {"follows": follows}
+
+
+@router.get("/getFollowsByImageId/{imageId}")
+def getFollowsByImageId(imageId: int, authorize: AuthJWT = Depends()):
+    authorize.jwt_required()
+
+    current_user = authorize.get_jwt_subject()
+    user = get_user(current_user)
+    follow = get_follows_by_image_id(user, imageId)
+
+    return {"followCnt": follow.followCnt}
+
